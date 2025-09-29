@@ -48,6 +48,37 @@ body {
     animation: sparkle 3s ease-in-out infinite;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.dashboard-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.dashboard-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-link .icon {
+    font-size: 16px;
+}
+
 @keyframes sparkle {
     0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.3; }
     50% { transform: rotate(180deg) scale(1.1); opacity: 0.6; }
@@ -202,6 +233,16 @@ body {
     50% { transform: translateY(-3px); }
 }
 
+.typing-dots {
+    animation: typing 1.5s infinite;
+}
+
+@keyframes typing {
+    0%, 20% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
 #user-input {
     flex: 1;
     padding: 12px 16px 12px 40px;
@@ -218,6 +259,12 @@ body {
     border-color: #ff6b9d;
     box-shadow: 0 0 15px rgba(255, 107, 157, 0.3);
     background: white;
+}
+
+#user-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.5);
 }
 
 #user-input::placeholder {
@@ -257,6 +304,18 @@ body {
 #send-button:active {
     transform: translateY(0);
     box-shadow: 0 2px 8px rgba(255, 107, 157, 0.4);
+}
+
+#send-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(255, 107, 157, 0.2);
+}
+
+#send-button:disabled:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(255, 107, 157, 0.2);
 }
 
 /* Scrollbar styling */

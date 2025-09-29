@@ -5,7 +5,21 @@ class Chatbot {
         this.userInput = document.getElementById('user-input');
         this.sendButton = document.getElementById('send-button');
         
-        // Fixed bot responses
+        // Backend API Configuration
+        this.apiUrl = 'http://localhost:3000/api/chat';
+        this.conversationId = null;
+        
+        // System prompt for nail salon assistant
+        this.systemPrompt = `You are a helpful and friendly nail salon assistant for Soco Nail. You should:
+        - Be warm, welcoming, and professional
+        - Use nail salon terminology and emojis (💅, ✨, 💖, 🌸)
+        - Help with appointments, services, nail care tips, and general questions
+        - Keep responses concise but helpful
+        - Always maintain a positive, pampering tone
+        - Use nail-related emojis appropriately
+        - Be knowledgeable about manicures, pedicures, nail art, gel nails, etc.`;
+        
+        // Fixed bot responses (fallback)
         this.botResponses = {
             greetings: [
                 "Hello beautiful! 💅 Welcome to our nail salon! How can I pamper you today?",
@@ -70,7 +84,7 @@ class Chatbot {
         this.userInput.focus();
     }
     
-    sendMessage() {
+    async sendMessage() {
         const message = this.userInput.value.trim();
         if (message === '') return;
         
@@ -80,12 +94,66 @@ class Chatbot {
         // Clear input
         this.userInput.value = '';
         
-        // Generate bot response
-        setTimeout(() => {
-            const botResponse = this.generateResponse(message);
+        // Disable input while processing
+        this.userInput.disabled = true;
+        this.sendButton.disabled = true;
+        
+        try {
+            // Show loading indicator
+            const loadingMessage = this.addLoadingMessage();
+            
+            // Generate bot response using backend API
+            const botResponse = await this.generateBackendResponse(message);
+            
+            // Remove loading message and add actual response
+            this.removeLoadingMessage(loadingMessage);
             this.addMessage(botResponse, 'bot');
-        }, 1000 + Math.random() * 1000); // Random delay to simulate thinking
+        } catch (error) {
+            console.error('Error calling backend API:', error);
+            // Remove loading message if it exists
+            const loadingMessage = document.querySelector('.loading-message');
+            if (loadingMessage) {
+                this.removeLoadingMessage(loadingMessage);
+            }
+            // Fallback to fixed responses
+            const fallbackResponse = this.generateResponse(message);
+            this.addMessage(fallbackResponse, 'bot');
+        } finally {
+            // Re-enable input
+            this.userInput.disabled = false;
+            this.sendButton.disabled = false;
+            this.userInput.focus();
+        }
     }
+    
+    async generateBackendResponse(userMessage) {
+        const requestBody = {
+            message: userMessage,
+            conversationId: this.conversationId
+        };
+        
+        const response = await fetch(this.apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Store conversation ID for future requests
+        if (data.conversationId) {
+            this.conversationId = data.conversationId;
+        }
+        
+        return data.response;
+    }
+    
     
     addMessage(content, sender) {
         const messageDiv = document.createElement('div');
@@ -155,6 +223,28 @@ class Chatbot {
     
     getRandomResponse(responses) {
         return responses[Math.floor(Math.random() * responses.length)];
+    }
+    
+    addLoadingMessage() {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message bot-message loading-message';
+        loadingDiv.innerHTML = `
+            <div class="message-avatar">💅</div>
+            <div class="message-content">
+                <p>Nail artist is thinking<span class="typing-dots">...</span></p>
+                <span class="message-time">Just now</span>
+            </div>
+        `;
+        
+        this.messagesContainer.appendChild(loadingDiv);
+        this.scrollToBottom();
+        return loadingDiv;
+    }
+    
+    removeLoadingMessage(loadingMessage) {
+        if (loadingMessage && loadingMessage.parentNode) {
+            loadingMessage.parentNode.removeChild(loadingMessage);
+        }
     }
     
     scrollToBottom() {
