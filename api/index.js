@@ -54,13 +54,23 @@ module.exports = async (req, res) => {
   }
 
   const { method, url } = req;
+  
+  // Handle Vercel's URL structure
+  let pathname = url;
+  if (url.includes('?')) {
+    pathname = url.split('?')[0];
+  }
+  
+  // Remove query parameters and get clean pathname
   const urlObj = new URL(url, `http://${req.headers.host}`);
-  const pathname = urlObj.pathname;
+  pathname = urlObj.pathname;
 
   try {
     // Route: POST /api/chat
     if (method === 'POST' && pathname === '/api/chat') {
       const { message, conversationId } = req.body;
+      
+      console.log('Chat request:', { message, conversationId, pathname });
       
       if (!message || message.trim() === '') {
         return res.status(400).json({ error: 'Message is required' });
@@ -68,6 +78,7 @@ module.exports = async (req, res) => {
 
       // Generate new conversation ID if not provided
       const convId = conversationId || generateConversationId();
+      console.log('Using conversation ID:', convId);
       
       // Add user message
       const userMessage = {
@@ -119,7 +130,9 @@ module.exports = async (req, res) => {
 
       // Only create/update conversation in Supabase if we have messages
       if (finalMessages.length > 0) {
+        console.log('Saving conversation:', convId, 'with', finalMessages.length, 'messages');
         await updateConversationMessages(convId, finalMessages);
+        console.log('Conversation saved successfully');
       }
 
       // Return response with conversation ID
@@ -132,6 +145,7 @@ module.exports = async (req, res) => {
 
     // Route: GET /api/conversations
     if (method === 'GET' && pathname === '/api/conversations') {
+      console.log('Fetching conversations from pathname:', pathname);
       const { data, error } = await supabase
         .from('conversations')
         .select('id, conversation_id, messages, created_at, lead_analysis, analyzed_at')

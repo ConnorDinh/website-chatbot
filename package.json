@@ -9,6 +9,9 @@
     "build": "echo 'No build step required'",
     "deploy": "vercel --prod"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
     "cors": "^2.8.5",

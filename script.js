@@ -132,6 +132,8 @@ class Chatbot {
             conversationId: this.conversationId
         };
         
+        console.log('Sending request:', requestBody);
+        
         const response = await fetch(this.apiUrl, {
             method: 'POST',
             headers: {
@@ -145,10 +147,12 @@ class Chatbot {
         }
         
         const data = await response.json();
+        console.log('Received response:', data);
         
         // Store conversation ID for future requests
         if (data.conversationId) {
             this.conversationId = data.conversationId;
+            console.log('Updated conversation ID:', this.conversationId);
         }
         
         return data.response;
