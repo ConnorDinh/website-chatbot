@@ -6,7 +6,7 @@ class Chatbot {
         this.sendButton = document.getElementById('send-button');
         
         // Backend API Configuration
-        this.apiUrl = 'http://localhost:3000/api/chat';
+        this.apiUrl = '/api/chat';
         this.conversationId = null;
         
         // System prompt for nail salon assistant

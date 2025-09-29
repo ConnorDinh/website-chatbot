@@ -71,18 +71,24 @@ class ConversationDashboard {
         this.showLoading(true);
         
         try {
+            console.log('Loading conversations from:', `${this.apiUrl}/conversations`);
             const response = await fetch(`${this.apiUrl}/conversations`);
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            this.conversations = await response.json();
+            const data = await response.json();
+            console.log('Conversations data:', data);
+            this.conversations = data;
             this.updateStats();
             this.renderConversations();
             
         } catch (error) {
             console.error('Error loading conversations:', error);
-            this.showError('Failed to load conversations. Please try again.');
+            this.showError(`Failed to load conversations: ${error.message}`);
         } finally {
             this.showLoading(false);
         }

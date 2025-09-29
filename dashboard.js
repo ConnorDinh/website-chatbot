@@ -1,7 +1,7 @@
 // Dashboard functionality
 class ConversationDashboard {
     constructor() {
-        this.apiUrl = 'http://localhost:3000/api';
+        this.apiUrl = '/api';
         this.conversations = [];
         this.currentConversation = null;
         
