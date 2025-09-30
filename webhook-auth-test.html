@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Authentication Test - Soco Nail</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b9d, #c44569);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .error-banner {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .error-banner h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+        }
+
+        .error-banner p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .webhook-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .webhook-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #ff6b9d;
+        }
+
+        .auth-section {
+            background: #e8f5e8;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .auth-section h3 {
+            color: #155724;
+            margin-bottom: 15px;
+        }
+
+        .auth-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .auth-option {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #c3e6cb;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .auth-option:hover {
+            border-color: #28a745;
+            transform: translateY(-2px);
+        }
+
+        .auth-option.selected {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .auth-option input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b9d, #c44569);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 157, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .results.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .results.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff6b9d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .help-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .help-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .help-section ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .help-section li {
+            margin-bottom: 8px;
+            color: #856404;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Webhook Authentication Test</h1>
+            <p>Test webhook with proper authentication to fix HTTP 401 errors</p>
+        </div>
+
+        <div class="content">
+            <div class="error-banner">
+                <h3>🚨 HTTP 401 Error Detected</h3>
+                <p>Your webhook requires authentication. This tool will help you test with the correct authentication method.</p>
+            </div>
+
+            <div class="webhook-section">
+                <h2>🔗 Webhook Configuration</h2>
+                
+                <div class="input-group">
+                    <label for="webhook-url">Webhook URL</label>
+                    <input type="url" id="webhook-url" placeholder="https://hook.eu1.make.com/your-webhook-url" />
+                </div>
+
+                <div class="auth-section">
+                    <h3>🔐 Authentication Method</h3>
+                    <div class="auth-options">
+                        <div class="auth-option" onclick="selectAuth('none')">
+                            <input type="radio" name="auth" value="none" id="auth-none" checked>
+                            <label for="auth-none">No Authentication</label>
+                        </div>
+                        <div class="auth-option" onclick="selectAuth('basic')">
+                            <input type="radio" name="auth" value="basic" id="auth-basic">
+                            <label for="auth-basic">Basic Auth</label>
+                        </div>
+                        <div class="auth-option" onclick="selectAuth('bearer')">
+                            <input type="radio" name="auth" value="bearer" id="auth-bearer">
+                            <label for="auth-bearer">Bearer Token</label>
+                        </div>
+                        <div class="auth-option" onclick="selectAuth('api-key')">
+                            <input type="radio" name="auth" value="api-key" id="auth-api-key">
+                            <label for="auth-api-key">API Key</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="auth-fields" class="hidden">
+                    <div class="input-group" id="basic-auth-fields">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" placeholder="Enter username" />
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="Enter password" />
+                    </div>
+
+                    <div class="input-group" id="bearer-auth-fields">
+                        <label for="bearer-token">Bearer Token</label>
+                        <input type="text" id="bearer-token" placeholder="Enter bearer token" />
+                    </div>
+
+                    <div class="input-group" id="api-key-auth-fields">
+                        <label for="api-key">API Key</label>
+                        <input type="text" id="api-key" placeholder="Enter API key" />
+                        <label for="api-key-header">Header Name</label>
+                        <input type="text" id="api-key-header" placeholder="X-API-Key" value="X-API-Key" />
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="test-webhook" onclick="testWebhook()">
+                        <span id="test-icon">🚀</span>
+                        <span id="test-text">Test Webhook</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="useTestEndpoint()">Use Test Endpoint</button>
+                    <button class="btn btn-success" onclick="testAllMethods()">Test All Methods</button>
+                </div>
+
+                <div id="results" class="results"></div>
+            </div>
+
+            <div class="help-section">
+                <h3>💡 Common HTTP 401 Solutions</h3>
+                <ul>
+                    <li><strong>Make.com:</strong> Check if your webhook URL is correct and the scenario is active</li>
+                    <li><strong>Zapier:</strong> Verify webhook URL and test the webhook in Zapier first</li>
+                    <li><strong>Custom API:</strong> Check if authentication headers are required</li>
+                    <li><strong>Basic Auth:</strong> Some services require username/password in the URL</li>
+                    <li><strong>Bearer Token:</strong> Many APIs use "Authorization: Bearer TOKEN" header</li>
+                    <li><strong>API Key:</strong> Check if you need to send an API key in headers</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedAuth = 'none';
+
+        function selectAuth(authType) {
+            selectedAuth = authType;
+            
+            // Update visual selection
+            document.querySelectorAll('.auth-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Update radio button
+            document.getElementById(`auth-${authType}`).checked = true;
+            
+            // Show/hide auth fields
+            const authFields = document.getElementById('auth-fields');
+            const basicFields = document.getElementById('basic-auth-fields');
+            const bearerFields = document.getElementById('bearer-auth-fields');
+            const apiKeyFields = document.getElementById('api-key-auth-fields');
+            
+            if (authType === 'none') {
+                authFields.classList.add('hidden');
+            } else {
+                authFields.classList.remove('hidden');
+                
+                // Hide all auth field groups
+                basicFields.classList.add('hidden');
+                bearerFields.classList.add('hidden');
+                apiKeyFields.classList.add('hidden');
+                
+                // Show relevant group
+                if (authType === 'basic') {
+                    basicFields.classList.remove('hidden');
+                } else if (authType === 'bearer') {
+                    bearerFields.classList.remove('hidden');
+                } else if (authType === 'api-key') {
+                    apiKeyFields.classList.remove('hidden');
+                }
+            }
+        }
+
+        async function testWebhook() {
+            const webhookUrl = document.getElementById('webhook-url').value.trim();
+            
+            if (!webhookUrl) {
+                showResults('Please enter a webhook URL', 'error');
+                return;
+            }
+
+            const testButton = document.getElementById('test-webhook');
+            const testIcon = document.getElementById('test-icon');
+            const testText = document.getElementById('test-text');
+            
+            // Show loading state
+            testButton.disabled = true;
+            testIcon.innerHTML = '<div class="loading"></div>';
+            testText.textContent = 'Testing...';
+
+            try {
+                const payload = {
+                    customer_name: "Test Customer",
+                    customer_email: "test@email.com",
+                    customer_phone: "555-123-4567",
+                    customer_service: "Test Service",
+                    lead_quality: "good",
+                    conversation_id: "test_auth_123",
+                    source: "Authentication Test",
+                    timestamp: new Date().toISOString()
+                };
+
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                // Add authentication headers based on selected method
+                if (selectedAuth === 'basic') {
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    if (username && password) {
+                        const credentials = btoa(`${username}:${password}`);
+                        headers['Authorization'] = `Basic ${credentials}`;
+                    }
+                } else if (selectedAuth === 'bearer') {
+                    const token = document.getElementById('bearer-token').value;
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                } else if (selectedAuth === 'api-key') {
+                    const apiKey = document.getElementById('api-key').value;
+                    const headerName = document.getElementById('api-key-header').value;
+                    if (apiKey && headerName) {
+                        headers[headerName] = apiKey;
+                    }
+                }
+
+                console.log('Testing webhook with headers:', headers);
+
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const responseData = await response.text();
+                    showResults(`✅ Webhook test successful!<br><br>Response: ${responseData}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}<br>Response: ${errorText}`);
+                }
+            } catch (error) {
+                console.error('Webhook test error:', error);
+                showResults(`❌ Webhook test failed: ${error.message}`, 'error');
+            } finally {
+                // Reset button state
+                testButton.disabled = false;
+                testIcon.innerHTML = '🚀';
+                testText.textContent = 'Test Webhook';
+            }
+        }
+
+        async function testAllMethods() {
+            const webhookUrl = document.getElementById('webhook-url').value.trim();
+            
+            if (!webhookUrl) {
+                showResults('Please enter a webhook URL first', 'error');
+                return;
+            }
+
+            const testButton = document.getElementById('test-webhook');
+            const testIcon = document.getElementById('test-icon');
+            const testText = document.getElementById('test-text');
+            
+            // Show loading state
+            testButton.disabled = true;
+            testIcon.innerHTML = '<div class="loading"></div>';
+            testText.textContent = 'Testing All Methods...';
+
+            const methods = ['none', 'basic', 'bearer', 'api-key'];
+            const results = [];
+
+            try {
+                for (const method of methods) {
+                    try {
+                        // Simulate testing different auth methods
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        // In a real implementation, you would test each method
+                        results.push(`${method}: Not implemented in demo`);
+                    } catch (error) {
+                        results.push(`${method}: ${error.message}`);
+                    }
+                }
+
+                const resultText = `
+                    <strong>🔍 Authentication Method Test Results:</strong><br><br>
+                    ${results.join('<br>')}<br><br>
+                    <em>Note: This is a demo. In practice, each method would be tested with your actual webhook.</em>
+                `;
+                
+                showResults(resultText, 'success');
+
+            } catch (error) {
+                console.error('Test all methods error:', error);
+                showResults(`❌ Error testing methods: ${error.message}`, 'error');
+            } finally {
+                // Reset button state
+                testButton.disabled = false;
+                testIcon.innerHTML = '🚀';
+                testText.textContent = 'Test Webhook';
+            }
+        }
+
+        function useTestEndpoint() {
+            document.getElementById('webhook-url').value = '/api/test-webhook';
+            selectAuth('none');
+        }
+
+        function showResults(message, type) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = message;
+            resultsDiv.className = `results ${type} show`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            selectAuth('none');
+        });
+    </script>
+</body>
+</html>

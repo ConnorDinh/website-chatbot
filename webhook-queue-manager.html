@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Queue Manager - Soco Nail</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b9d, #c44569);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .queue-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .queue-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff6b9d;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b9d, #c44569);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 157, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .queue-list {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .queue-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .queue-item:last-child {
+            border-bottom: none;
+        }
+
+        .queue-item.failed {
+            background: #fff5f5;
+            border-left: 4px solid #dc3545;
+        }
+
+        .queue-item.pending {
+            background: #fffbf0;
+            border-left: 4px solid #ffc107;
+        }
+
+        .queue-item.success {
+            background: #f0fff4;
+            border-left: 4px solid #28a745;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-id {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .item-details {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff6b9d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .results.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .results.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Webhook Queue Manager</h1>
+            <p>Process unprocessed webhook data and manage your queue</p>
+        </div>
+
+        <div class="content">
+            <div class="queue-section">
+                <h2>📊 Queue Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-queue">0</div>
+                        <div class="stat-label">Total in Queue</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="failed-count">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pending-count">0</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="processed-count">0</div>
+                        <div class="stat-label">Processed</div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="loadQueue()">
+                        <span id="load-icon">🔄</span>
+                        <span id="load-text">Refresh Queue</span>
+                    </button>
+                    <button class="btn btn-success" onclick="processAll()">
+                        <span id="process-icon">⚡</span>
+                        <span id="process-text">Process All</span>
+                    </button>
+                    <button class="btn btn-warning" onclick="retryFailed()">
+                        <span id="retry-icon">🔄</span>
+                        <span id="retry-text">Retry Failed</span>
+                    </button>
+                    <button class="btn btn-danger" onclick="clearQueue()">
+                        <span id="clear-icon">🗑️</span>
+                        <span id="clear-text">Clear Queue</span>
+                    </button>
+                </div>
+
+                <div id="queue-list" class="queue-list">
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <h3>No Queue Data</h3>
+                        <p>Click "Refresh Queue" to load webhook queue data</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="queue-section">
+                <h2>🔧 Manual Processing</h2>
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label for="webhook-url">Webhook URL</label>
+                    <input type="url" id="webhook-url" placeholder="https://hook.eu1.make.com/your-webhook-url" style="width: 100%; padding: 15px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 1rem;" />
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="testWebhook()">Test Webhook</button>
+                    <button class="btn btn-secondary" onclick="useTestEndpoint()">Use Test Endpoint</button>
+                </div>
+                <div id="test-results" class="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let queueData = [];
+        let webhookUrl = '';
+
+        // Load queue data (simulated - replace with actual API calls)
+        async function loadQueue() {
+            const loadButton = document.getElementById('load-icon');
+            const loadText = document.getElementById('load-text');
+            
+            loadButton.innerHTML = '<div class="loading"></div>';
+            loadText.textContent = 'Loading...';
+
+            try {
+                // Simulate loading queue data
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Mock queue data - replace with actual API call
+                queueData = [
+                    {
+                        id: 'webhook_001',
+                        status: 'failed',
+                        timestamp: '2024-01-15T10:30:00Z',
+                        customer_name: 'Sarah Johnson',
+                        customer_email: 'sarah@email.com',
+                        error: 'Connection timeout',
+                        retry_count: 2
+                    },
+                    {
+                        id: 'webhook_002',
+                        status: 'pending',
+                        timestamp: '2024-01-15T10:31:00Z',
+                        customer_name: 'Maria Garcia',
+                        customer_email: 'maria@email.com',
+                        retry_count: 0
+                    },
+                    {
+                        id: 'webhook_003',
+                        status: 'failed',
+                        timestamp: '2024-01-15T10:32:00Z',
+                        customer_name: 'Lisa Chen',
+                        customer_email: 'lisa@email.com',
+                        error: 'Invalid JSON format',
+                        retry_count: 1
+                    },
+                    {
+                        id: 'webhook_004',
+                        status: 'success',
+                        timestamp: '2024-01-15T10:33:00Z',
+                        customer_name: 'Emma Wilson',
+                        customer_email: 'emma@email.com',
+                        retry_count: 0
+                    }
+                ];
+
+                updateStats();
+                renderQueue();
+                showResults('✅ Queue data loaded successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error loading queue:', error);
+                showResults(`❌ Error loading queue: ${error.message}`, 'error');
+            } finally {
+                loadButton.innerHTML = '🔄';
+                loadText.textContent = 'Refresh Queue';
+            }
+        }
+
+        function updateStats() {
+            const total = queueData.length;
+            const failed = queueData.filter(item => item.status === 'failed').length;
+            const pending = queueData.filter(item => item.status === 'pending').length;
+            const processed = queueData.filter(item => item.status === 'success').length;
+
+            document.getElementById('total-queue').textContent = total;
+            document.getElementById('failed-count').textContent = failed;
+            document.getElementById('pending-count').textContent = pending;
+            document.getElementById('processed-count').textContent = processed;
+        }
+
+        function renderQueue() {
+            const queueList = document.getElementById('queue-list');
+            
+            if (queueData.length === 0) {
+                queueList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <h3>No Queue Data</h3>
+                        <p>Click "Refresh Queue" to load webhook queue data</p>
+                    </div>
+                `;
+                return;
+            }
+
+            queueList.innerHTML = queueData.map(item => `
+                <div class="queue-item ${item.status}">
+                    <div class="item-info">
+                        <div class="item-id">${item.id}</div>
+                        <div class="item-details">
+                            <strong>${item.customer_name}</strong> (${item.customer_email})<br>
+                            <small>${new Date(item.timestamp).toLocaleString()} • Retries: ${item.retry_count}</small>
+                            ${item.error ? `<br><small style="color: #dc3545;">Error: ${item.error}</small>` : ''}
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        ${item.status === 'failed' ? `
+                            <button class="btn btn-warning btn-small" onclick="retryItem('${item.id}')">Retry</button>
+                        ` : ''}
+                        ${item.status === 'pending' ? `
+                            <button class="btn btn-primary btn-small" onclick="processItem('${item.id}')">Process</button>
+                        ` : ''}
+                        <button class="btn btn-danger btn-small" onclick="removeItem('${item.id}')">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function processAll() {
+            const processButton = document.getElementById('process-icon');
+            const processText = document.getElementById('process-text');
+            
+            processButton.innerHTML = '<div class="loading"></div>';
+            processText.textContent = 'Processing...';
+
+            try {
+                const pendingItems = queueData.filter(item => item.status === 'pending' || item.status === 'failed');
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const item of pendingItems) {
+                    try {
+                        // Simulate processing
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        // Mark as success (in real implementation, call your webhook)
+                        item.status = 'success';
+                        successCount++;
+                    } catch (error) {
+                        item.status = 'failed';
+                        item.error = error.message;
+                        errorCount++;
+                    }
+                }
+
+                updateStats();
+                renderQueue();
+                showResults(`✅ Processed ${successCount} items successfully, ${errorCount} failed`, 'success');
+
+            } catch (error) {
+                console.error('Error processing queue:', error);
+                showResults(`❌ Error processing queue: ${error.message}`, 'error');
+            } finally {
+                processButton.innerHTML = '⚡';
+                processText.textContent = 'Process All';
+            }
+        }
+
+        async function retryFailed() {
+            const failedItems = queueData.filter(item => item.status === 'failed');
+            
+            if (failedItems.length === 0) {
+                showResults('No failed items to retry', 'success');
+                return;
+            }
+
+            const retryButton = document.getElementById('retry-icon');
+            const retryText = document.getElementById('retry-text');
+            
+            retryButton.innerHTML = '<div class="loading"></div>';
+            retryText.textContent = 'Retrying...';
+
+            try {
+                for (const item of failedItems) {
+                    item.status = 'pending';
+                    item.retry_count++;
+                    item.error = null;
+                }
+
+                updateStats();
+                renderQueue();
+                showResults(`✅ Retried ${failedItems.length} failed items`, 'success');
+
+            } catch (error) {
+                console.error('Error retrying failed items:', error);
+                showResults(`❌ Error retrying: ${error.message}`, 'error');
+            } finally {
+                retryButton.innerHTML = '🔄';
+                retryText.textContent = 'Retry Failed';
+            }
+        }
+
+        function clearQueue() {
+            if (confirm('Are you sure you want to clear the entire queue? This action cannot be undone.')) {
+                queueData = [];
+                updateStats();
+                renderQueue();
+                showResults('✅ Queue cleared successfully', 'success');
+            }
+        }
+
+        function retryItem(itemId) {
+            const item = queueData.find(i => i.id === itemId);
+            if (item) {
+                item.status = 'pending';
+                item.retry_count++;
+                item.error = null;
+                updateStats();
+                renderQueue();
+                showResults(`✅ Retried item ${itemId}`, 'success');
+            }
+        }
+
+        function processItem(itemId) {
+            const item = queueData.find(i => i.id === itemId);
+            if (item) {
+                item.status = 'success';
+                updateStats();
+                renderQueue();
+                showResults(`✅ Processed item ${itemId}`, 'success');
+            }
+        }
+
+        function removeItem(itemId) {
+            if (confirm('Are you sure you want to remove this item from the queue?')) {
+                queueData = queueData.filter(i => i.id !== itemId);
+                updateStats();
+                renderQueue();
+                showResults(`✅ Removed item ${itemId}`, 'success');
+            }
+        }
+
+        async function testWebhook() {
+            webhookUrl = document.getElementById('webhook-url').value.trim();
+            
+            if (!webhookUrl) {
+                showResults('Please enter a webhook URL', 'error');
+                return;
+            }
+
+            try {
+                const testPayload = {
+                    customer_name: "Test Customer",
+                    customer_email: "test@email.com",
+                    customer_phone: "555-123-4567",
+                    customer_service: "Test Service",
+                    lead_quality: "good",
+                    conversation_id: "test_123",
+                    source: "Queue Manager Test",
+                    timestamp: new Date().toISOString()
+                };
+
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+
+                if (response.ok) {
+                    showResults('✅ Webhook test successful!', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Webhook test error:', error);
+                showResults(`❌ Webhook test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function useTestEndpoint() {
+            document.getElementById('webhook-url').value = '/api/test-webhook';
+        }
+
+        function showResults(message, type) {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = message;
+            resultsDiv.className = `results ${type} show`;
+        }
+
+        // Load queue on page load
+        document.addEventListener('DOMContentLoaded', loadQueue);
+    </script>
+</body>
+</html>
