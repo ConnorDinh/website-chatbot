@@ -1,106 +1,50 @@
-# Make.com Workflow: Webhook → OpenAI → Customer Data Extraction
+# Make.com Workflow: HTTP POST → Direct Data Processing
 
-This guide shows how to create a Make.com workflow that receives customer messages via webhook and uses OpenAI to extract structured customer information.
+This guide shows how to create a Make.com workflow that receives customer data via HTTP POST requests and processes it directly without JSON parsing.
 
 ## Workflow Overview
 
 ```
-Webhook Trigger → OpenAI Analysis → Data Processing → Output Actions
+HTTP POST Webhook → Direct Data Processing → Output Actions
 ```
 
 ## Step-by-Step Workflow Setup
 
-### 1. Webhook Trigger
+### 1. HTTP POST Webhook Trigger
 - **Module**: Webhooks > Custom webhook
-- **Purpose**: Receive customer messages from the chatbot
-- **Expected Payload**:
+- **Purpose**: Receive customer data directly from the chatbot
+- **Expected Payload** (Simple HTTP POST):
 ```json
 {
-  "conversationId": "conv_123456",
-  "customerMessages": [
-    {
-      "role": "user",
-      "content": "Hi, I'd like to book a manicure",
-      "timestamp": "2024-01-15T10:30:00Z"
-    },
-    {
-      "role": "assistant", 
-      "content": "Hello! I'd be happy to help you book a manicure. What type of manicure are you interested in?",
-      "timestamp": "2024-01-15T10:30:15Z"
-    },
-    {
-      "role": "user",
-      "content": "I want a gel manicure for my wedding next week. My name is Sarah Johnson and my email is sarah@email.com",
-      "timestamp": "2024-01-15T10:31:00Z"
-    }
-  ],
-  "metadata": {
-    "source": "Soco Nail Chatbot",
-    "timestamp": "2024-01-15T10:31:00Z"
-  }
+  "customer_name": "Sarah Johnson",
+  "customer_email": "sarah@email.com",
+  "customer_phone": "555-123-4567",
+  "customer_service": "Gel Manicure",
+  "appointment_time": "Saturday 2 PM",
+  "special_notes": "Wedding manicure",
+  "preferred_technician": "Maria",
+  "lead_quality": "good",
+  "appointment_booked": true,
+  "conversation_id": "conv_123456",
+  "message_count": 7,
+  "customer_messages": "Customer: Hi, I'd like to book a manicure...",
+  "source": "Soco Nail Chatbot",
+  "timestamp": "2024-01-15T10:32:00Z",
+  "extracted_at": "2024-01-15T10:32:00Z"
 }
 ```
 
-### 2. OpenAI Analysis Module
-- **Module**: OpenAI > Create a chat completion
-- **Model**: gpt-4o-mini (cost-effective) or gpt-4o
-- **System Prompt**: See below
-- **User Message**: `{{1.customerMessages}}` (the customer messages array from webhook)
+### 2. Direct Data Processing
+- **No JSON parsing needed!** All data is already in simple key-value format
+- **Direct field mapping** to your output modules
+- **Immediate processing** without complex transformations
 
-### 3. Data Processing
-- **Module**: JSON > Parse JSON
-- **Purpose**: Parse the structured response from OpenAI
-
-### 4. Output Actions (Choose one or more)
-- **Google Sheets**: Add row with customer data
-- **Airtable**: Create record
-- **Slack**: Send notification
+### 3. Output Actions (Choose one or more)
+- **Google Sheets**: Add row with customer data using direct field mapping
+- **Airtable**: Create record with direct field mapping
+- **Slack**: Send notification with customer details
 - **Email**: Send to sales team
 - **CRM**: Create lead/contact
-
-## OpenAI System Prompt
-
-```
-You are a customer data extraction specialist for Soco Nail salon. Analyze the provided customer conversation messages and extract structured information.
-
-The input is an array of conversation messages with this structure:
-[
-  {"role": "user", "content": "Customer message", "timestamp": "ISO timestamp"},
-  {"role": "assistant", "content": "Bot response", "timestamp": "ISO timestamp"}
-]
-
-Extract the following information from the customer messages:
-- Customer Name
-- Email Address  
-- Phone Number
-- Service Requested
-- Appointment Date/Time (if mentioned)
-- Special Notes or Requirements
-- Preferred Technician (if mentioned)
-- Lead Quality (good/ok/spam)
-- Appointment Status (booked/pending/not_booked)
-
-Rules:
-1. Only extract information explicitly mentioned by the customer (role: "user")
-2. If information is not provided, use "Not provided"
-3. Lead Quality: "good" if contact info provided, "ok" if engaged but limited info, "spam" if no meaningful engagement
-4. Be conservative with lead quality assessment
-5. Focus on the actual conversation content, not timestamps
-
-Return ONLY a valid JSON object with this exact structure:
-{
-  "customerName": "string",
-  "customerEmail": "string", 
-  "customerPhone": "string",
-  "customerService": "string",
-  "appointmentTime": "string",
-  "specialNotes": "string",
-  "preferredTechnician": "string",
-  "leadQuality": "good|ok|spam",
-  "appointmentStatus": "booked|pending|not_booked",
-  "extractedAt": "ISO timestamp"
-}
-```
 
 ## Workflow Configuration
 
@@ -108,37 +52,37 @@ Return ONLY a valid JSON object with this exact structure:
 - **Webhook URL**: Copy from Make.com webhook module
 - **HTTP Method**: POST
 - **Content Type**: application/json
+- **Timeout**: 30 seconds
 
-### OpenAI Settings
-- **Model**: gpt-4o-mini
-- **Max Tokens**: 500
-- **Temperature**: 0.1
-- **Response Format**: JSON Object
+### Direct Field Mapping
+Map the HTTP POST fields directly to your output modules:
 
-### Data Mapping
-Map the OpenAI response to your output modules:
-
-| OpenAI Field | Google Sheets Column | Airtable Field | Notes |
-|--------------|---------------------|----------------|-------|
-| customerName | Customer Name | Name | |
-| customerEmail | Email | Email | |
-| customerPhone | Phone | Phone | |
-| customerService | Service | Service | |
-| appointmentTime | Appointment Time | Appointment Time | |
-| leadQuality | Lead Quality | Lead Quality | |
-| appointmentStatus | Status | Status | |
+| HTTP POST Field | Google Sheets Column | Airtable Field | Notes |
+|----------------|---------------------|----------------|-------|
+| customer_name | Customer Name | Name | Direct mapping |
+| customer_email | Email | Email | Direct mapping |
+| customer_phone | Phone | Phone | Direct mapping |
+| customer_service | Service | Service | Direct mapping |
+| appointment_time | Appointment Time | Appointment Time | Direct mapping |
+| special_notes | Notes | Notes | Direct mapping |
+| preferred_technician | Technician | Technician | Direct mapping |
+| lead_quality | Lead Quality | Lead Quality | Direct mapping |
+| appointment_booked | Booked | Booked | Boolean field |
+| conversation_id | Conversation ID | Conversation ID | Unique identifier |
+| message_count | Message Count | Message Count | Number of messages |
+| customer_messages | Messages | Messages | Full conversation text |
 
 ## Error Handling
 
-### 1. OpenAI API Errors
+### 1. HTTP POST Errors
 - **Module**: Error handling
 - **Action**: Send notification to admin
 - **Fallback**: Store raw data for manual review
 
-### 2. Invalid JSON Response
-- **Module**: JSON validation
-- **Action**: Retry with different prompt
-- **Fallback**: Use basic extraction
+### 2. Missing Required Fields
+- **Module**: Data validation
+- **Action**: Log warning and continue
+- **Fallback**: Use default values
 
 ### 3. Webhook Timeout
 - **Module**: Webhook settings

@@ -364,6 +364,23 @@
 
                 <div id="results" class="results"></div>
             </div>
+
+            <div class="webhook-section">
+                <h2>📤 Batch Processing</h2>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Send HTTP POST requests for all analyzed conversations to your webhook endpoint.
+                </p>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" id="batch-send" onclick="sendBatchRequests()">
+                        <span id="batch-icon">📤</span>
+                        <span id="batch-text">Send All Conversations</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadAllConversations()">Load All Conversations</button>
+                </div>
+
+                <div id="batch-results" class="results"></div>
+            </div>
         </div>
     </div>
 
@@ -593,29 +610,35 @@
             testText.textContent = 'Testing...';
 
             try {
-                // Prepare webhook payload with customer messages for Make.com workflow
+                // Prepare simple HTTP POST payload for each conversation
                 const payload = {
-                    conversationId: conversationId,
-                    customerMessages: conversationData?.messages || [],
-                    extractedData: {
-                        customerName: analysisData.customerName || '',
-                        customerEmail: analysisData.customerEmail || '',
-                        customerPhone: analysisData.customerPhone || '',
-                        customerService: analysisData.customerService || '',
-                        customerTime: analysisData.customerTime || '',
-                        customerNotes: analysisData.customerNotes || '',
-                        customerTechnician: analysisData.customerTechnician || '',
-                        leadQuality: analysisData.leadQuality || '',
-                        appointmentBooked: analysisData.customerAppointment || false
-                    },
-                    metadata: {
-                        source: 'Soco Nail Chatbot',
-                        timestamp: new Date().toISOString(),
-                        messageCount: conversationData?.messages?.length || 0
-                    }
+                    // Customer Information
+                    customer_name: analysisData.customerName || '',
+                    customer_email: analysisData.customerEmail || '',
+                    customer_phone: analysisData.customerPhone || '',
+                    customer_service: analysisData.customerService || '',
+                    appointment_time: analysisData.customerTime || '',
+                    special_notes: analysisData.customerNotes || '',
+                    preferred_technician: analysisData.customerTechnician || '',
+                    lead_quality: analysisData.leadQuality || '',
+                    appointment_booked: analysisData.customerAppointment || false,
+                    
+                    // Conversation Details
+                    conversation_id: conversationId,
+                    message_count: conversationData?.messages?.length || 0,
+                    
+                    // Customer Messages (as simple text)
+                    customer_messages: (conversationData?.messages || [])
+                        .map(msg => `${msg.role === 'user' ? 'Customer' : 'Assistant'}: ${msg.content}`)
+                        .join('\n'),
+                    
+                    // Metadata
+                    source: 'Soco Nail Chatbot',
+                    timestamp: new Date().toISOString(),
+                    extracted_at: new Date().toISOString()
                 };
 
-                console.log('Webhook payload:', payload);
+                console.log('HTTP POST payload:', payload);
 
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
@@ -727,6 +750,138 @@
             console.log('Loaded sample data:', currentCustomerData);
             displayCustomerData();
             showResults('✅ Sample data loaded successfully! You can now test the webhook.', 'success');
+        }
+
+        let allConversations = [];
+
+        async function loadAllConversations() {
+            try {
+                const response = await fetch('/api/conversations');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const conversations = await response.json();
+                allConversations = conversations.filter(conv => conv.leadAnalysis);
+                
+                showBatchResults(`✅ Loaded ${allConversations.length} analyzed conversations ready for batch processing.`, 'success');
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+                showBatchResults(`❌ Error loading conversations: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendBatchRequests() {
+            const webhookUrl = document.getElementById('webhook-url').value.trim();
+            
+            if (!webhookUrl) {
+                showBatchResults('Please enter a webhook URL first', 'error');
+                return;
+            }
+
+            if (allConversations.length === 0) {
+                showBatchResults('No conversations loaded. Click "Load All Conversations" first.', 'error');
+                return;
+            }
+
+            const batchButton = document.getElementById('batch-send');
+            const batchIcon = document.getElementById('batch-icon');
+            const batchText = document.getElementById('batch-text');
+            
+            // Show loading state
+            batchButton.disabled = true;
+            batchIcon.innerHTML = '<div class="loading"></div>';
+            batchText.textContent = 'Sending...';
+
+            let successCount = 0;
+            let errorCount = 0;
+            const results = [];
+
+            try {
+                for (let i = 0; i < allConversations.length; i++) {
+                    const conv = allConversations[i];
+                    
+                    try {
+                        // Prepare HTTP POST payload for this conversation
+                        const payload = {
+                            // Customer Information
+                            customer_name: conv.leadAnalysis.customerName || '',
+                            customer_email: conv.leadAnalysis.customerEmail || '',
+                            customer_phone: conv.leadAnalysis.customerPhone || '',
+                            customer_service: conv.leadAnalysis.customerService || '',
+                            appointment_time: conv.leadAnalysis.customerTime || '',
+                            special_notes: conv.leadAnalysis.customerNotes || '',
+                            preferred_technician: conv.leadAnalysis.customerTechnician || '',
+                            lead_quality: conv.leadAnalysis.leadQuality || '',
+                            appointment_booked: conv.leadAnalysis.customerAppointment || false,
+                            
+                            // Conversation Details
+                            conversation_id: conv.conversationId,
+                            message_count: conv.messageCount || 0,
+                            
+                            // Customer Messages (as simple text)
+                            customer_messages: 'Messages not available in batch mode',
+                            
+                            // Metadata
+                            source: 'Soco Nail Chatbot',
+                            timestamp: new Date().toISOString(),
+                            extracted_at: new Date().toISOString()
+                        };
+
+                        const response = await fetch(webhookUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.ok) {
+                            successCount++;
+                            results.push(`✅ ${conv.conversationId}: Success`);
+                        } else {
+                            errorCount++;
+                            results.push(`❌ ${conv.conversationId}: HTTP ${response.status}`);
+                        }
+
+                        // Small delay between requests
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                    } catch (error) {
+                        errorCount++;
+                        results.push(`❌ ${conv.conversationId}: ${error.message}`);
+                    }
+                }
+
+                // Show results
+                const resultText = `
+                    <strong>Batch Processing Complete!</strong><br><br>
+                    ✅ Successful: ${successCount}<br>
+                    ❌ Failed: ${errorCount}<br>
+                    📊 Total: ${allConversations.length}<br><br>
+                    <details>
+                        <summary>View Details</summary>
+                        <pre style="margin-top: 10px; font-size: 12px;">${results.join('\n')}</pre>
+                    </details>
+                `;
+                
+                showBatchResults(resultText, errorCount === 0 ? 'success' : 'error');
+
+            } catch (error) {
+                console.error('Batch processing error:', error);
+                showBatchResults(`❌ Batch processing failed: ${error.message}`, 'error');
+            } finally {
+                // Reset button state
+                batchButton.disabled = false;
+                batchIcon.innerHTML = '📤';
+                batchText.textContent = 'Send All Conversations';
+            }
+        }
+
+        function showBatchResults(message, type) {
+            const resultsDiv = document.getElementById('batch-results');
+            resultsDiv.innerHTML = message;
+            resultsDiv.className = `results ${type} show`;
         }
 
         // Load data when page loads

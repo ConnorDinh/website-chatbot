@@ -1,12 +1,12 @@
 {
-  "name": "Soco Nail - Customer Data Extraction",
-  "description": "Extract customer information from chatbot messages using OpenAI",
+  "name": "Soco Nail - Customer Data Processing",
+  "description": "Process customer data from HTTP POST requests directly to business systems",
   "version": 1,
   "modules": [
     {
       "id": 1,
       "type": "webhooks",
-      "name": "Webhook",
+      "name": "HTTP POST Webhook",
       "parameters": {
         "url": "https://hook.eu1.make.com/your-webhook-url",
         "method": "POST",
@@ -15,63 +15,47 @@
     },
     {
       "id": 2,
-      "type": "openai",
-      "name": "Extract Customer Data",
-      "parameters": {
-        "model": "gpt-4o-mini",
-        "messages": [
-          {
-            "role": "system",
-            "content": "You are a customer data extraction specialist for Soco Nail salon. Analyze the provided customer conversation and extract structured information.\n\nExtract the following information from the customer messages:\n- Customer Name\n- Email Address\n- Phone Number\n- Service Requested\n- Appointment Date/Time (if mentioned)\n- Special Notes or Requirements\n- Preferred Technician (if mentioned)\n- Lead Quality (good/ok/spam)\n- Appointment Status (booked/pending/not_booked)\n\nRules:\n1. Only extract information explicitly mentioned by the customer\n2. If information is not provided, use \"Not provided\"\n3. Lead Quality: \"good\" if contact info provided, \"ok\" if engaged but limited info, \"spam\" if no meaningful engagement\n4. Be conservative with lead quality assessment\n\nReturn ONLY a valid JSON object with this exact structure:\n{\n  \"customerName\": \"string\",\n  \"customerEmail\": \"string\",\n  \"customerPhone\": \"string\",\n  \"customerService\": \"string\",\n  \"appointmentTime\": \"string\",\n  \"specialNotes\": \"string\",\n  \"preferredTechnician\": \"string\",\n  \"leadQuality\": \"good|ok|spam\",\n  \"appointmentStatus\": \"booked|pending|not_booked\",\n  \"extractedAt\": \"ISO timestamp\"\n}"
-          },
-          {
-            "role": "user",
-            "content": "{{1.customerMessages}}"
-          }
-        ],
-        "maxTokens": 500,
-        "temperature": 0.1,
-        "responseFormat": "json_object"
-      }
-    },
-    {
-      "id": 3,
-      "type": "json",
-      "name": "Parse Customer Data",
-      "parameters": {
-        "json": "{{2.choices[0].message.content}}"
-      }
-    },
-    {
-      "id": 4,
       "type": "googlesheets",
       "name": "Add to Customer Database",
       "parameters": {
         "spreadsheetId": "your-spreadsheet-id",
-        "range": "Sheet1!A:J",
+        "range": "Sheet1!A:M",
         "values": [
           [
-            "{{3.customerName}}",
-            "{{3.customerEmail}}",
-            "{{3.customerPhone}}",
-            "{{3.customerService}}",
-            "{{3.appointmentTime}}",
-            "{{3.specialNotes}}",
-            "{{3.preferredTechnician}}",
-            "{{3.leadQuality}}",
-            "{{3.appointmentStatus}}",
-            "{{3.extractedAt}}"
+            "{{1.customer_name}}",
+            "{{1.customer_email}}",
+            "{{1.customer_phone}}",
+            "{{1.customer_service}}",
+            "{{1.appointment_time}}",
+            "{{1.special_notes}}",
+            "{{1.preferred_technician}}",
+            "{{1.lead_quality}}",
+            "{{1.appointment_booked}}",
+            "{{1.conversation_id}}",
+            "{{1.message_count}}",
+            "{{1.timestamp}}",
+            "{{1.source}}"
           ]
         ]
       }
     },
     {
-      "id": 5,
+      "id": 3,
       "type": "slack",
       "name": "Notify Sales Team",
       "parameters": {
         "channel": "#sales",
-        "text": "New customer lead from Soco Nail chatbot:\n\n*Name:* {{3.customerName}}\n*Email:* {{3.customerEmail}}\n*Phone:* {{3.customerPhone}}\n*Service:* {{3.customerService}}\n*Lead Quality:* {{3.leadQuality}}\n*Status:* {{3.appointmentStatus}}\n\n*Conversation ID:* {{1.conversationId}}"
+        "text": "New customer lead from Soco Nail chatbot:\n\n*Name:* {{1.customer_name}}\n*Email:* {{1.customer_email}}\n*Phone:* {{1.customer_phone}}\n*Service:* {{1.customer_service}}\n*Appointment Time:* {{1.appointment_time}}\n*Lead Quality:* {{1.lead_quality}}\n*Booked:* {{1.appointment_booked}}\n*Conversation ID:* {{1.conversation_id}}\n*Messages:* {{1.message_count}}"
+      }
+    },
+    {
+      "id": 4,
+      "type": "email",
+      "name": "Send to Sales Team",
+      "parameters": {
+        "to": "sales@soconail.com",
+        "subject": "New Lead: {{1.customer_name}} - {{1.customer_service}}",
+        "text": "New customer lead received:\n\nCustomer: {{1.customer_name}}\nEmail: {{1.customer_email}}\nPhone: {{1.customer_phone}}\nService: {{1.customer_service}}\nAppointment Time: {{1.appointment_time}}\nLead Quality: {{1.lead_quality}}\nSpecial Notes: {{1.special_notes}}\nPreferred Technician: {{1.preferred_technician}}\n\nConversation ID: {{1.conversation_id}}\nMessage Count: {{1.message_count}}\n\nCustomer Messages:\n{{1.customer_messages}}"
       }
     }
   ],
@@ -81,16 +65,12 @@
       "to": 2
     },
     {
-      "from": 2,
+      "from": 1,
       "to": 3
     },
     {
-      "from": 3,
+      "from": 1,
       "to": 4
-    },
-    {
-      "from": 3,
-      "to": 5
     }
   ],
   "settings": {
