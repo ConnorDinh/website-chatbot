@@ -345,6 +345,10 @@
 
             <div class="webhook-section">
                 <h2>🔗 Webhook Configuration</h2>
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
+                    <strong>✅ No JSON Parsing Required!</strong><br>
+                    This sends simple key-value pairs directly to Make.com. No complex parsing needed!
+                </div>
                 <div class="input-group">
                     <label for="webhook-url">Make.com Webhook URL</label>
                     <input type="url" id="webhook-url" placeholder="https://hook.eu1.make.com/your-webhook-url" />
@@ -363,6 +367,20 @@
                 </div>
 
                 <div id="results" class="results"></div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <h4 style="margin: 0 0 10px 0; color: #333;">📋 Data Structure Being Sent</h4>
+                    <div style="font-family: monospace; font-size: 12px; color: #666;">
+                        <div><strong>customer_name:</strong> Customer's full name</div>
+                        <div><strong>customer_email:</strong> Email address</div>
+                        <div><strong>customer_phone:</strong> Phone number</div>
+                        <div><strong>customer_service:</strong> Service requested</div>
+                        <div><strong>appointment_time:</strong> Preferred time</div>
+                        <div><strong>lead_quality:</strong> good/ok/spam</div>
+                        <div><strong>conversation_id:</strong> Unique ID</div>
+                        <div style="margin-top: 8px; color: #28a745;"><strong>✅ Simple key-value pairs - no JSON parsing needed!</strong></div>
+                    </div>
+                </div>
             </div>
 
             <div class="webhook-section">
