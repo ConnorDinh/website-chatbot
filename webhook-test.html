@@ -274,6 +274,46 @@
         .refresh-btn:hover {
             background: #138496;
         }
+
+        .message-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #ff6b9d;
+        }
+
+        .message-item.user {
+            border-left-color: #28a745;
+        }
+
+        .message-item.assistant {
+            border-left-color: #ff6b9d;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .message-role {
+            font-weight: 600;
+            color: #333;
+            text-transform: capitalize;
+        }
+
+        .message-time {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .message-content {
+            color: #555;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -290,6 +330,13 @@
                 <h2>📋 Customer Information</h2>
                 <div id="customer-data">
                     <div class="no-data">No customer data available. Please select a conversation from the dashboard first.</div>
+                </div>
+            </div>
+
+            <div class="customer-info" id="messages-section" style="display: none;">
+                <h2>💬 Customer Messages</h2>
+                <div id="customer-messages">
+                    <!-- Messages will be displayed here -->
                 </div>
             </div>
 
@@ -346,21 +393,33 @@
 
         async function fetchCustomerData(conversationId) {
             try {
-                const response = await fetch(`/api/analyze-lead/${conversationId}`, {
+                // First get the full conversation data
+                const conversationResponse = await fetch(`/api/conversation/${conversationId}`);
+                if (!conversationResponse.ok) {
+                    throw new Error(`Failed to fetch conversation: ${conversationResponse.status}`);
+                }
+                const conversationData = await conversationResponse.json();
+                
+                // Then get the analysis
+                const analysisResponse = await fetch(`/api/analyze-lead/${conversationId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (!analysisResponse.ok) {
+                    throw new Error(`HTTP error! status: ${analysisResponse.status}`);
                 }
 
-                const data = await response.json();
+                const analysisData = await analysisResponse.json();
                 
-                if (data.success && data.analysis) {
-                    currentCustomerData = data.analysis;
+                if (analysisData.success && analysisData.analysis) {
+                    currentCustomerData = {
+                        analysis: analysisData.analysis,
+                        conversation: conversationData,
+                        conversationId: conversationId
+                    };
                     localStorage.setItem('webhookTestData', JSON.stringify(currentCustomerData));
                     displayCustomerData();
                 } else {
@@ -374,13 +433,13 @@
         }
 
         function displayCustomerData() {
-            if (!currentCustomerData) {
+            if (!currentCustomerData || !currentCustomerData.analysis) {
                 document.getElementById('customer-data').innerHTML = 
                     '<div class="no-data">No customer data available.</div>';
                 return;
             }
 
-            const data = currentCustomerData;
+            const data = currentCustomerData.analysis;
             const leadQualityClass = data.leadQuality ? data.leadQuality.toLowerCase() : 'ok';
             
             document.getElementById('customer-data').innerHTML = `
@@ -425,6 +484,33 @@
                     ` : ''}
                 </div>
             `;
+            
+            // Display customer messages
+            displayCustomerMessages();
+        }
+
+        function displayCustomerMessages() {
+            if (!currentCustomerData || !currentCustomerData.conversation?.messages) {
+                document.getElementById('messages-section').style.display = 'none';
+                return;
+            }
+
+            const messages = currentCustomerData.conversation.messages;
+            const messagesHtml = messages.map(msg => {
+                const time = new Date(msg.timestamp).toLocaleTimeString();
+                return `
+                    <div class="message-item ${msg.role}">
+                        <div class="message-header">
+                            <span class="message-role">${msg.role === 'user' ? 'Customer' : 'Assistant'}</span>
+                            <span class="message-time">${time}</span>
+                        </div>
+                        <div class="message-content">${msg.content}</div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('customer-messages').innerHTML = messagesHtml;
+            document.getElementById('messages-section').style.display = 'block';
         }
 
         async function testWebhook() {
@@ -450,19 +536,26 @@
             testText.textContent = 'Testing...';
 
             try {
-                // Prepare webhook payload
+                // Prepare webhook payload with customer messages for Make.com workflow
                 const payload = {
-                    customerName: currentCustomerData.customerName || '',
-                    customerEmail: currentCustomerData.customerEmail || '',
-                    customerPhone: currentCustomerData.customerPhone || '',
-                    customerService: currentCustomerData.customerService || '',
-                    customerTime: currentCustomerData.customerTime || '',
-                    customerNotes: currentCustomerData.customerNotes || '',
-                    customerTechnician: currentCustomerData.customerTechnician || '',
-                    leadQuality: currentCustomerData.leadQuality || '',
-                    appointmentBooked: currentCustomerData.customerAppointment || false,
-                    timestamp: new Date().toISOString(),
-                    source: 'Soco Nail Chatbot'
+                    conversationId: currentCustomerData.conversationId || 'unknown',
+                    customerMessages: currentCustomerData.conversation?.messages || [],
+                    extractedData: {
+                        customerName: currentCustomerData.analysis.customerName || '',
+                        customerEmail: currentCustomerData.analysis.customerEmail || '',
+                        customerPhone: currentCustomerData.analysis.customerPhone || '',
+                        customerService: currentCustomerData.analysis.customerService || '',
+                        customerTime: currentCustomerData.analysis.customerTime || '',
+                        customerNotes: currentCustomerData.analysis.customerNotes || '',
+                        customerTechnician: currentCustomerData.analysis.customerTechnician || '',
+                        leadQuality: currentCustomerData.analysis.leadQuality || '',
+                        appointmentBooked: currentCustomerData.analysis.customerAppointment || false
+                    },
+                    metadata: {
+                        source: 'Soco Nail Chatbot',
+                        timestamp: new Date().toISOString(),
+                        messageCount: currentCustomerData.conversation?.messages?.length || 0
+                    }
                 };
 
                 const response = await fetch(webhookUrl, {

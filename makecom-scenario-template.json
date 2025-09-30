@@ -1,0 +1,106 @@
+{
+  "name": "Soco Nail - Customer Data Extraction",
+  "description": "Extract customer information from chatbot messages using OpenAI",
+  "version": 1,
+  "modules": [
+    {
+      "id": 1,
+      "type": "webhooks",
+      "name": "Webhook",
+      "parameters": {
+        "url": "https://hook.eu1.make.com/your-webhook-url",
+        "method": "POST",
+        "contentType": "application/json"
+      }
+    },
+    {
+      "id": 2,
+      "type": "openai",
+      "name": "Extract Customer Data",
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a customer data extraction specialist for Soco Nail salon. Analyze the provided customer conversation and extract structured information.\n\nExtract the following information from the customer messages:\n- Customer Name\n- Email Address\n- Phone Number\n- Service Requested\n- Appointment Date/Time (if mentioned)\n- Special Notes or Requirements\n- Preferred Technician (if mentioned)\n- Lead Quality (good/ok/spam)\n- Appointment Status (booked/pending/not_booked)\n\nRules:\n1. Only extract information explicitly mentioned by the customer\n2. If information is not provided, use \"Not provided\"\n3. Lead Quality: \"good\" if contact info provided, \"ok\" if engaged but limited info, \"spam\" if no meaningful engagement\n4. Be conservative with lead quality assessment\n\nReturn ONLY a valid JSON object with this exact structure:\n{\n  \"customerName\": \"string\",\n  \"customerEmail\": \"string\",\n  \"customerPhone\": \"string\",\n  \"customerService\": \"string\",\n  \"appointmentTime\": \"string\",\n  \"specialNotes\": \"string\",\n  \"preferredTechnician\": \"string\",\n  \"leadQuality\": \"good|ok|spam\",\n  \"appointmentStatus\": \"booked|pending|not_booked\",\n  \"extractedAt\": \"ISO timestamp\"\n}"
+          },
+          {
+            "role": "user",
+            "content": "{{1.customerMessages}}"
+          }
+        ],
+        "maxTokens": 500,
+        "temperature": 0.1,
+        "responseFormat": "json_object"
+      }
+    },
+    {
+      "id": 3,
+      "type": "json",
+      "name": "Parse Customer Data",
+      "parameters": {
+        "json": "{{2.choices[0].message.content}}"
+      }
+    },
+    {
+      "id": 4,
+      "type": "googlesheets",
+      "name": "Add to Customer Database",
+      "parameters": {
+        "spreadsheetId": "your-spreadsheet-id",
+        "range": "Sheet1!A:J",
+        "values": [
+          [
+            "{{3.customerName}}",
+            "{{3.customerEmail}}",
+            "{{3.customerPhone}}",
+            "{{3.customerService}}",
+            "{{3.appointmentTime}}",
+            "{{3.specialNotes}}",
+            "{{3.preferredTechnician}}",
+            "{{3.leadQuality}}",
+            "{{3.appointmentStatus}}",
+            "{{3.extractedAt}}"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "type": "slack",
+      "name": "Notify Sales Team",
+      "parameters": {
+        "channel": "#sales",
+        "text": "New customer lead from Soco Nail chatbot:\n\n*Name:* {{3.customerName}}\n*Email:* {{3.customerEmail}}\n*Phone:* {{3.customerPhone}}\n*Service:* {{3.customerService}}\n*Lead Quality:* {{3.leadQuality}}\n*Status:* {{3.appointmentStatus}}\n\n*Conversation ID:* {{1.conversationId}}"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": 1,
+      "to": 2
+    },
+    {
+      "from": 2,
+      "to": 3
+    },
+    {
+      "from": 3,
+      "to": 4
+    },
+    {
+      "from": 3,
+      "to": 5
+    }
+  ],
+  "settings": {
+    "errorHandling": {
+      "retryAttempts": 3,
+      "retryDelay": 300
+    },
+    "webhook": {
+      "timeout": 30,
+      "authentication": "none"
+    }
+  }
+}
