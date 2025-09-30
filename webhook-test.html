@@ -324,7 +324,10 @@
         </div>
 
         <div class="content">
-            <button class="refresh-btn" onclick="loadCustomerData()">🔄 Refresh Customer Data</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                <button class="refresh-btn" onclick="loadCustomerData()">🔄 Refresh Customer Data</button>
+                <button class="refresh-btn" onclick="loadSampleData()" style="background: #17a2b8;">📋 Load Sample Data</button>
+            </div>
             
             <div class="customer-info">
                 <h2>📋 Customer Information</h2>
@@ -376,14 +379,25 @@
             const urlParams = new URLSearchParams(window.location.search);
             const conversationId = urlParams.get('conversationId');
             
+            console.log('Loading customer data, conversationId:', conversationId);
+            
             if (conversationId) {
                 fetchCustomerData(conversationId);
             } else {
                 // Try to load from localStorage
                 const savedData = localStorage.getItem('webhookTestData');
+                console.log('Saved data from localStorage:', savedData);
+                
                 if (savedData) {
-                    currentCustomerData = JSON.parse(savedData);
-                    displayCustomerData();
+                    try {
+                        currentCustomerData = JSON.parse(savedData);
+                        console.log('Parsed currentCustomerData:', currentCustomerData);
+                        displayCustomerData();
+                    } catch (error) {
+                        console.error('Error parsing saved data:', error);
+                        document.getElementById('customer-data').innerHTML = 
+                            '<div class="no-data">Error loading saved data. Please refresh from dashboard.</div>';
+                    }
                 } else {
                     document.getElementById('customer-data').innerHTML = 
                         '<div class="no-data">No customer data available. Please select a conversation from the dashboard first.</div>';
@@ -433,13 +447,30 @@
         }
 
         function displayCustomerData() {
-            if (!currentCustomerData || !currentCustomerData.analysis) {
+            console.log('displayCustomerData called, currentCustomerData:', currentCustomerData);
+            
+            if (!currentCustomerData) {
+                console.log('No currentCustomerData');
                 document.getElementById('customer-data').innerHTML = 
                     '<div class="no-data">No customer data available.</div>';
                 return;
             }
 
-            const data = currentCustomerData.analysis;
+            // Handle both old and new data structures
+            let data;
+            if (currentCustomerData.analysis) {
+                data = currentCustomerData.analysis;
+                console.log('Using new data structure, analysis:', data);
+            } else if (currentCustomerData.customerName) {
+                data = currentCustomerData;
+                console.log('Using old data structure, data:', data);
+            } else {
+                console.log('Invalid data structure');
+                document.getElementById('customer-data').innerHTML = 
+                    '<div class="no-data">Invalid customer data structure.</div>';
+                return;
+            }
+
             const leadQualityClass = data.leadQuality ? data.leadQuality.toLowerCase() : 'ok';
             
             document.getElementById('customer-data').innerHTML = `
@@ -490,12 +521,26 @@
         }
 
         function displayCustomerMessages() {
-            if (!currentCustomerData || !currentCustomerData.conversation?.messages) {
+            console.log('displayCustomerMessages called, currentCustomerData:', currentCustomerData);
+            
+            if (!currentCustomerData) {
                 document.getElementById('messages-section').style.display = 'none';
                 return;
             }
 
-            const messages = currentCustomerData.conversation.messages;
+            // Handle both old and new data structures
+            let messages;
+            if (currentCustomerData.conversation?.messages) {
+                messages = currentCustomerData.conversation.messages;
+                console.log('Using new data structure, messages:', messages);
+            } else if (currentCustomerData.messages) {
+                messages = currentCustomerData.messages;
+                console.log('Using old data structure, messages:', messages);
+            } else {
+                console.log('No messages found');
+                document.getElementById('messages-section').style.display = 'none';
+                return;
+            }
             const messagesHtml = messages.map(msg => {
                 const time = new Date(msg.timestamp).toLocaleTimeString();
                 return `
@@ -526,6 +571,18 @@
                 return;
             }
 
+            // Handle both old and new data structures
+            let analysisData, conversationData, conversationId;
+            if (currentCustomerData.analysis) {
+                analysisData = currentCustomerData.analysis;
+                conversationData = currentCustomerData.conversation;
+                conversationId = currentCustomerData.conversationId;
+            } else {
+                analysisData = currentCustomerData;
+                conversationData = { messages: [] };
+                conversationId = 'unknown';
+            }
+
             const testButton = document.getElementById('test-webhook');
             const testIcon = document.getElementById('test-icon');
             const testText = document.getElementById('test-text');
@@ -538,25 +595,27 @@
             try {
                 // Prepare webhook payload with customer messages for Make.com workflow
                 const payload = {
-                    conversationId: currentCustomerData.conversationId || 'unknown',
-                    customerMessages: currentCustomerData.conversation?.messages || [],
+                    conversationId: conversationId,
+                    customerMessages: conversationData?.messages || [],
                     extractedData: {
-                        customerName: currentCustomerData.analysis.customerName || '',
-                        customerEmail: currentCustomerData.analysis.customerEmail || '',
-                        customerPhone: currentCustomerData.analysis.customerPhone || '',
-                        customerService: currentCustomerData.analysis.customerService || '',
-                        customerTime: currentCustomerData.analysis.customerTime || '',
-                        customerNotes: currentCustomerData.analysis.customerNotes || '',
-                        customerTechnician: currentCustomerData.analysis.customerTechnician || '',
-                        leadQuality: currentCustomerData.analysis.leadQuality || '',
-                        appointmentBooked: currentCustomerData.analysis.customerAppointment || false
+                        customerName: analysisData.customerName || '',
+                        customerEmail: analysisData.customerEmail || '',
+                        customerPhone: analysisData.customerPhone || '',
+                        customerService: analysisData.customerService || '',
+                        customerTime: analysisData.customerTime || '',
+                        customerNotes: analysisData.customerNotes || '',
+                        customerTechnician: analysisData.customerTechnician || '',
+                        leadQuality: analysisData.leadQuality || '',
+                        appointmentBooked: analysisData.customerAppointment || false
                     },
                     metadata: {
                         source: 'Soco Nail Chatbot',
                         timestamp: new Date().toISOString(),
-                        messageCount: currentCustomerData.conversation?.messages?.length || 0
+                        messageCount: conversationData?.messages?.length || 0
                     }
                 };
+
+                console.log('Webhook payload:', payload);
 
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
@@ -607,6 +666,67 @@
 
         function useTestWebhook() {
             document.getElementById('webhook-url').value = '/api/test-webhook';
+        }
+
+        function loadSampleData() {
+            // Create sample customer data for testing
+            currentCustomerData = {
+                analysis: {
+                    customerName: "Sarah Johnson",
+                    customerEmail: "sarah.johnson@email.com",
+                    customerPhone: "555-123-4567",
+                    customerService: "Gel Manicure with French Tips",
+                    customerTime: "Saturday 2 PM",
+                    customerNotes: "Wedding manicure",
+                    customerTechnician: "Maria",
+                    leadQuality: "good",
+                    customerAppointment: true
+                },
+                conversation: {
+                    messages: [
+                        {
+                            role: "user",
+                            content: "Hi, I'd like to book a manicure for my wedding next week",
+                            timestamp: "2024-01-15T10:30:00Z"
+                        },
+                        {
+                            role: "assistant",
+                            content: "Hello! Congratulations on your wedding! I'd be happy to help you book a manicure. What type of manicure are you interested in?",
+                            timestamp: "2024-01-15T10:30:15Z"
+                        },
+                        {
+                            role: "user",
+                            content: "I want a gel manicure with French tips. My name is Sarah Johnson, email is sarah.johnson@email.com, and my phone is 555-123-4567. I'd prefer Saturday afternoon around 2 PM if possible.",
+                            timestamp: "2024-01-15T10:31:00Z"
+                        },
+                        {
+                            role: "assistant",
+                            content: "Perfect! I can help you with that. Let me check our availability for Saturday afternoon around 2 PM for a gel manicure with French tips.",
+                            timestamp: "2024-01-15T10:31:15Z"
+                        },
+                        {
+                            role: "user",
+                            content: "Great! Do you have any specific nail artists who specialize in wedding manicures?",
+                            timestamp: "2024-01-15T10:31:30Z"
+                        },
+                        {
+                            role: "assistant",
+                            content: "Yes! Our senior nail artist Maria specializes in wedding manicures and has excellent reviews. Would you like me to book you with her for Saturday at 2 PM?",
+                            timestamp: "2024-01-15T10:31:45Z"
+                        },
+                        {
+                            role: "user",
+                            content: "Yes, that sounds perfect! Please book me with Maria for Saturday at 2 PM. Thank you!",
+                            timestamp: "2024-01-15T10:32:00Z"
+                        }
+                    ]
+                },
+                conversationId: "sample_123456"
+            };
+
+            console.log('Loaded sample data:', currentCustomerData);
+            displayCustomerData();
+            showResults('✅ Sample data loaded successfully! You can now test the webhook.', 'success');
         }
 
         // Load data when page loads

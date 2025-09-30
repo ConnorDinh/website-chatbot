@@ -45,7 +45,7 @@ Webhook Trigger → OpenAI Analysis → Data Processing → Output Actions
 - **Module**: OpenAI > Create a chat completion
 - **Model**: gpt-4o-mini (cost-effective) or gpt-4o
 - **System Prompt**: See below
-- **User Message**: Process the customer messages array
+- **User Message**: `{{1.customerMessages}}` (the customer messages array from webhook)
 
 ### 3. Data Processing
 - **Module**: JSON > Parse JSON
@@ -61,7 +61,13 @@ Webhook Trigger → OpenAI Analysis → Data Processing → Output Actions
 ## OpenAI System Prompt
 
 ```
-You are a customer data extraction specialist for Soco Nail salon. Analyze the provided customer conversation and extract structured information.
+You are a customer data extraction specialist for Soco Nail salon. Analyze the provided customer conversation messages and extract structured information.
+
+The input is an array of conversation messages with this structure:
+[
+  {"role": "user", "content": "Customer message", "timestamp": "ISO timestamp"},
+  {"role": "assistant", "content": "Bot response", "timestamp": "ISO timestamp"}
+]
 
 Extract the following information from the customer messages:
 - Customer Name
@@ -75,10 +81,11 @@ Extract the following information from the customer messages:
 - Appointment Status (booked/pending/not_booked)
 
 Rules:
-1. Only extract information explicitly mentioned by the customer
+1. Only extract information explicitly mentioned by the customer (role: "user")
 2. If information is not provided, use "Not provided"
 3. Lead Quality: "good" if contact info provided, "ok" if engaged but limited info, "spam" if no meaningful engagement
 4. Be conservative with lead quality assessment
+5. Focus on the actual conversation content, not timestamps
 
 Return ONLY a valid JSON object with this exact structure:
 {
