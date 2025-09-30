@@ -629,25 +629,26 @@
 
             try {
                 // Prepare simple HTTP POST payload for each conversation
+                // Ensure all fields are strings, never null
                 const payload = {
-                    // Customer Information
-                    customer_name: analysisData.customerName || '',
-                    customer_email: analysisData.customerEmail || '',
-                    customer_phone: analysisData.customerPhone || '',
-                    customer_service: analysisData.customerService || '',
-                    appointment_time: analysisData.customerTime || '',
-                    special_notes: analysisData.customerNotes || '',
-                    preferred_technician: analysisData.customerTechnician || '',
-                    lead_quality: analysisData.leadQuality || '',
-                    appointment_booked: analysisData.customerAppointment || false,
+                    // Customer Information (convert null to empty string)
+                    customer_name: String(analysisData.customerName || ''),
+                    customer_email: String(analysisData.customerEmail || ''),
+                    customer_phone: String(analysisData.customerPhone || ''),
+                    customer_service: String(analysisData.customerService || ''),
+                    appointment_time: String(analysisData.customerTime || ''),
+                    special_notes: String(analysisData.customerNotes || ''),
+                    preferred_technician: String(analysisData.customerTechnician || ''),
+                    lead_quality: String(analysisData.leadQuality || ''),
+                    appointment_booked: Boolean(analysisData.customerAppointment || false),
                     
                     // Conversation Details
-                    conversation_id: conversationId,
-                    message_count: conversationData?.messages?.length || 0,
+                    conversation_id: String(conversationId || ''),
+                    message_count: Number(conversationData?.messages?.length || 0),
                     
                     // Customer Messages (as simple text)
                     customer_messages: (conversationData?.messages || [])
-                        .map(msg => `${msg.role === 'user' ? 'Customer' : 'Assistant'}: ${msg.content}`)
+                        .map(msg => `${msg.role === 'user' ? 'Customer' : 'Assistant'}: ${msg.content || ''}`)
                         .join('\n'),
                     
                     // Metadata
@@ -821,21 +822,22 @@
                     
                     try {
                         // Prepare HTTP POST payload for this conversation
+                        // Ensure all fields are strings, never null
                         const payload = {
-                            // Customer Information
-                            customer_name: conv.leadAnalysis.customerName || '',
-                            customer_email: conv.leadAnalysis.customerEmail || '',
-                            customer_phone: conv.leadAnalysis.customerPhone || '',
-                            customer_service: conv.leadAnalysis.customerService || '',
-                            appointment_time: conv.leadAnalysis.customerTime || '',
-                            special_notes: conv.leadAnalysis.customerNotes || '',
-                            preferred_technician: conv.leadAnalysis.customerTechnician || '',
-                            lead_quality: conv.leadAnalysis.leadQuality || '',
-                            appointment_booked: conv.leadAnalysis.customerAppointment || false,
+                            // Customer Information (convert null to empty string)
+                            customer_name: String(conv.leadAnalysis.customerName || ''),
+                            customer_email: String(conv.leadAnalysis.customerEmail || ''),
+                            customer_phone: String(conv.leadAnalysis.customerPhone || ''),
+                            customer_service: String(conv.leadAnalysis.customerService || ''),
+                            appointment_time: String(conv.leadAnalysis.customerTime || ''),
+                            special_notes: String(conv.leadAnalysis.customerNotes || ''),
+                            preferred_technician: String(conv.leadAnalysis.customerTechnician || ''),
+                            lead_quality: String(conv.leadAnalysis.leadQuality || ''),
+                            appointment_booked: Boolean(conv.leadAnalysis.customerAppointment || false),
                             
                             // Conversation Details
-                            conversation_id: conv.conversationId,
-                            message_count: conv.messageCount || 0,
+                            conversation_id: String(conv.conversationId || ''),
+                            message_count: Number(conv.messageCount || 0),
                             
                             // Customer Messages (as simple text)
                             customer_messages: 'Messages not available in batch mode',
