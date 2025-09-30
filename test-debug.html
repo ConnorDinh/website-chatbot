@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug Test</title>
+</head>
+<body>
+    <h1>API Debug Test</h1>
+    <button onclick="testHealth()">Test Health API</button>
+    <button onclick="testChat()">Test Chat API</button>
+    <button onclick="testConversations()">Test Conversations API</button>
+    <button onclick="testConversationDetail()">Test Conversation Detail API</button>
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'https://website-chatbot-j3plhu01b-connor-dinhs-projects.vercel.app';
+        
+        async function testHealth() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing Health API...';
+            
+            try {
+                console.log('Testing health endpoint...');
+                const response = await fetch(`${API_BASE}/api/health`);
+                console.log('Health response:', response);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Health data:', data);
+                resultDiv.innerHTML = `<pre>Health API: ${JSON.stringify(data, null, 2)}</pre>`;
+                
+            } catch (error) {
+                console.error('Health API Error:', error);
+                resultDiv.innerHTML = `Health API Error: ${error.message}`;
+            }
+        }
+        
+        async function testChat() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing Chat API...';
+            
+            try {
+                console.log('Testing chat endpoint...');
+                const response = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'Hello, test message!'
+                    })
+                });
+                console.log('Chat response:', response);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Chat data:', data);
+                resultDiv.innerHTML = `<pre>Chat API: ${JSON.stringify(data, null, 2)}</pre>`;
+                
+            } catch (error) {
+                console.error('Chat API Error:', error);
+                resultDiv.innerHTML = `Chat API Error: ${error.message}`;
+            }
+        }
+        
+        async function testConversations() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing Conversations API...';
+            
+            try {
+                console.log('Testing conversations endpoint...');
+                const response = await fetch(`${API_BASE}/api/conversations`);
+                console.log('Conversations response:', response);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Conversations data:', data);
+                resultDiv.innerHTML = `<pre>Conversations API: ${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // Store the first conversation ID for testing detail endpoint
+                if (data && data.length > 0) {
+                    window.testConversationId = data[0].conversationId;
+                    console.log('Stored conversation ID for testing:', window.testConversationId);
+                }
+                
+            } catch (error) {
+                console.error('Conversations API Error:', error);
+                resultDiv.innerHTML = `Conversations API Error: ${error.message}`;
+            }
+        }
+        
+        async function testConversationDetail() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing Conversation Detail API...';
+            
+            if (!window.testConversationId) {
+                resultDiv.innerHTML = 'Please test Conversations API first to get a conversation ID';
+                return;
+            }
+            
+            try {
+                console.log('Testing conversation detail endpoint...');
+                const response = await fetch(`${API_BASE}/api/conversation/${window.testConversationId}`);
+                console.log('Conversation detail response:', response);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Conversation detail data:', data);
+                resultDiv.innerHTML = `<pre>Conversation Detail API: ${JSON.stringify(data, null, 2)}</pre>`;
+                
+            } catch (error) {
+                console.error('Conversation Detail API Error:', error);
+                resultDiv.innerHTML = `Conversation Detail API Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

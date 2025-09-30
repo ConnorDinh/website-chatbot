@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make.com Webhook Test - Soco Nail</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b9d, #c44569);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .customer-info {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-left: 5px solid #ff6b9d;
+        }
+
+        .customer-info h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .lead-quality {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .lead-quality.good {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .lead-quality.ok {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .lead-quality.spam {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .webhook-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .webhook-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #ff6b9d;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b9d, #c44569);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 157, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .results.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .results.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .announcement {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.5s ease;
+            z-index: 1000;
+        }
+
+        .announcement.show {
+            transform: translateX(0);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff6b9d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-data {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .refresh-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn:hover {
+            background: #138496;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💅 Make.com Webhook Test</h1>
+            <p>Test your webhook integration with customer booking data</p>
+        </div>
+
+        <div class="content">
+            <button class="refresh-btn" onclick="loadCustomerData()">🔄 Refresh Customer Data</button>
+            
+            <div class="customer-info">
+                <h2>📋 Customer Information</h2>
+                <div id="customer-data">
+                    <div class="no-data">No customer data available. Please select a conversation from the dashboard first.</div>
+                </div>
+            </div>
+
+            <div class="webhook-section">
+                <h2>🔗 Webhook Configuration</h2>
+                <div class="input-group">
+                    <label for="webhook-url">Make.com Webhook URL</label>
+                    <input type="url" id="webhook-url" placeholder="https://hook.eu1.make.com/your-webhook-url" />
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        💡 For testing: Use <code>/api/test-webhook</code> to test with our demo endpoint
+                    </small>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" id="test-webhook" onclick="testWebhook()">
+                        <span id="test-icon">🚀</span>
+                        <span id="test-text">Test Webhook</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="useTestWebhook()">Use Test Endpoint</button>
+                    <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
+                </div>
+
+                <div id="results" class="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="announcement" class="announcement">
+        <strong>🎉 Success!</strong> Webhook test completed successfully!
+    </div>
+
+    <script>
+        let currentCustomerData = null;
+
+        // Load customer data from URL parameters or localStorage
+        function loadCustomerData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const conversationId = urlParams.get('conversationId');
+            
+            if (conversationId) {
+                fetchCustomerData(conversationId);
+            } else {
+                // Try to load from localStorage
+                const savedData = localStorage.getItem('webhookTestData');
+                if (savedData) {
+                    currentCustomerData = JSON.parse(savedData);
+                    displayCustomerData();
+                } else {
+                    document.getElementById('customer-data').innerHTML = 
+                        '<div class="no-data">No customer data available. Please select a conversation from the dashboard first.</div>';
+                }
+            }
+        }
+
+        async function fetchCustomerData(conversationId) {
+            try {
+                const response = await fetch(`/api/analyze-lead/${conversationId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.analysis) {
+                    currentCustomerData = data.analysis;
+                    localStorage.setItem('webhookTestData', JSON.stringify(currentCustomerData));
+                    displayCustomerData();
+                } else {
+                    throw new Error('No analysis data received');
+                }
+            } catch (error) {
+                console.error('Error fetching customer data:', error);
+                document.getElementById('customer-data').innerHTML = 
+                    '<div class="no-data">Error loading customer data. Please try again.</div>';
+            }
+        }
+
+        function displayCustomerData() {
+            if (!currentCustomerData) {
+                document.getElementById('customer-data').innerHTML = 
+                    '<div class="no-data">No customer data available.</div>';
+                return;
+            }
+
+            const data = currentCustomerData;
+            const leadQualityClass = data.leadQuality ? data.leadQuality.toLowerCase() : 'ok';
+            
+            document.getElementById('customer-data').innerHTML = `
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Customer Name</div>
+                        <div class="info-value">${data.customerName || 'Not provided'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">${data.customerEmail || 'Not provided'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">${data.customerPhone || 'Not provided'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Service</div>
+                        <div class="info-value">${data.customerService || 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Appointment Time</div>
+                        <div class="info-value">${data.customerTime || 'Not scheduled'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Lead Quality</div>
+                        <div class="info-value">
+                            <span class="lead-quality ${leadQualityClass}">${data.leadQuality || 'Unknown'}</span>
+                        </div>
+                    </div>
+                    ${data.customerNotes ? `
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <div class="info-label">Notes</div>
+                        <div class="info-value">${data.customerNotes}</div>
+                    </div>
+                    ` : ''}
+                    ${data.customerTechnician ? `
+                    <div class="info-item">
+                        <div class="info-label">Preferred Technician</div>
+                        <div class="info-value">${data.customerTechnician}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        async function testWebhook() {
+            const webhookUrl = document.getElementById('webhook-url').value.trim();
+            
+            if (!webhookUrl) {
+                showResults('Please enter a webhook URL', 'error');
+                return;
+            }
+
+            if (!currentCustomerData) {
+                showResults('No customer data available to send', 'error');
+                return;
+            }
+
+            const testButton = document.getElementById('test-webhook');
+            const testIcon = document.getElementById('test-icon');
+            const testText = document.getElementById('test-text');
+            
+            // Show loading state
+            testButton.disabled = true;
+            testIcon.innerHTML = '<div class="loading"></div>';
+            testText.textContent = 'Testing...';
+
+            try {
+                // Prepare webhook payload
+                const payload = {
+                    customerName: currentCustomerData.customerName || '',
+                    customerEmail: currentCustomerData.customerEmail || '',
+                    customerPhone: currentCustomerData.customerPhone || '',
+                    customerService: currentCustomerData.customerService || '',
+                    customerTime: currentCustomerData.customerTime || '',
+                    customerNotes: currentCustomerData.customerNotes || '',
+                    customerTechnician: currentCustomerData.customerTechnician || '',
+                    leadQuality: currentCustomerData.leadQuality || '',
+                    appointmentBooked: currentCustomerData.customerAppointment || false,
+                    timestamp: new Date().toISOString(),
+                    source: 'Soco Nail Chatbot'
+                };
+
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const responseData = await response.text();
+                    showResults(`✅ Webhook test successful!<br><br>Response: ${responseData}`, 'success');
+                    showAnnouncement();
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Webhook test error:', error);
+                showResults(`❌ Webhook test failed: ${error.message}`, 'error');
+            } finally {
+                // Reset button state
+                testButton.disabled = false;
+                testIcon.innerHTML = '🚀';
+                testText.textContent = 'Test Webhook';
+            }
+        }
+
+        function showResults(message, type) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = message;
+            resultsDiv.className = `results ${type} show`;
+        }
+
+        function clearResults() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.className = 'results';
+            resultsDiv.innerHTML = '';
+        }
+
+        function showAnnouncement() {
+            const announcement = document.getElementById('announcement');
+            announcement.classList.add('show');
+            
+            setTimeout(() => {
+                announcement.classList.remove('show');
+            }, 3000);
+        }
+
+        function useTestWebhook() {
+            document.getElementById('webhook-url').value = '/api/test-webhook';
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', loadCustomerData);
+    </script>
+</body>
+</html>

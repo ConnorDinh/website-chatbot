@@ -55,15 +55,38 @@ module.exports = async (req, res) => {
 
   const { method, url } = req;
   
-  // Handle Vercel's URL structure
+  // For Vercel, we need to handle the URL differently
+  // Vercel passes the full URL including the domain
   let pathname = url;
-  if (url.includes('?')) {
+  
+  // Extract pathname from full URL
+  if (url.startsWith('http')) {
+    try {
+      const urlObj = new URL(url);
+      pathname = urlObj.pathname;
+    } catch (e) {
+      // Fallback: extract pathname manually
+      const pathMatch = url.match(/https?:\/\/[^\/]+(.*)/);
+      pathname = pathMatch ? pathMatch[1] : url;
+    }
+  } else {
+    // If it's already a pathname, use it as is
     pathname = url.split('?')[0];
   }
   
-  // Remove query parameters and get clean pathname
-  const urlObj = new URL(url, `http://${req.headers.host}`);
-  pathname = urlObj.pathname;
+  console.log('Request details:', { method, url, pathname, headers: req.headers });
+
+  // Add a catch-all debug route
+  if (pathname === '/api/debug') {
+    return res.json({
+      method: method,
+      url: url,
+      pathname: pathname,
+      headers: req.headers,
+      body: req.body,
+      timestamp: new Date()
+    });
+  }
 
   try {
     // Route: POST /api/chat
@@ -348,7 +371,20 @@ ${transcript}`;
     }
 
     // Route not found
-    return res.status(404).json({ error: 'Endpoint not found' });
+    console.log('Route not found:', { method, pathname });
+    return res.status(404).json({ 
+      error: 'Endpoint not found',
+      method: method,
+      pathname: pathname,
+      availableRoutes: [
+        'POST /api/chat',
+        'GET /api/conversations', 
+        'GET /api/conversation/:id',
+        'POST /api/analyze-lead/:id',
+        'GET /api/health',
+        'GET /api/'
+      ]
+    });
 
   } catch (error) {
     console.error('Error processing request:', error);

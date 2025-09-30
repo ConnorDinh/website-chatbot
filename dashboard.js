@@ -169,6 +169,10 @@ class ConversationDashboard {
                         <span class="icon">📊</span>
                         View Analysis
                     </button>` : ''}
+                    ${conv.leadAnalysis ? `<button class="btn btn-small btn-success" onclick="event.stopPropagation(); dashboard.testWebhook('${conv.conversationId}')">
+                        <span class="icon">🔗</span>
+                        Test Webhook
+                    </button>` : ''}
                 </div>
             </div>
         `).join('');
@@ -243,6 +247,10 @@ class ConversationDashboard {
                     ${conv.leadAnalysis ? `<button class="btn btn-small btn-info" onclick="event.stopPropagation(); dashboard.viewLeadAnalysis('${conv.conversationId}')">
                         <span class="icon">📊</span>
                         View Analysis
+                    </button>` : ''}
+                    ${conv.leadAnalysis ? `<button class="btn btn-small btn-success" onclick="event.stopPropagation(); dashboard.testWebhook('${conv.conversationId}')">
+                        <span class="icon">🔗</span>
+                        Test Webhook
                     </button>` : ''}
                 </div>
             </div>
@@ -560,6 +568,33 @@ class ConversationDashboard {
             case 'ok': return '👍';
             case 'spam': return '❌';
             default: return '❓';
+        }
+    }
+    
+    async testWebhook(conversationId) {
+        try {
+            // Find the conversation data
+            const conversation = this.conversations.find(conv => conv.conversationId === conversationId);
+            
+            if (!conversation) {
+                alert('Conversation not found.');
+                return;
+            }
+            
+            if (!conversation.leadAnalysis) {
+                alert('No analysis found for this conversation. Please analyze the lead first.');
+                return;
+            }
+            
+            // Store the customer data in localStorage for the webhook test page
+            localStorage.setItem('webhookTestData', JSON.stringify(conversation.leadAnalysis));
+            
+            // Open the webhook test page
+            window.open('webhook-test.html', '_blank');
+            
+        } catch (error) {
+            console.error('Error opening webhook test:', error);
+            alert('Failed to open webhook test. Please try again.');
         }
     }
 }
